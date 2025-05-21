@@ -17,6 +17,8 @@ export class GoogleSheetsUseCase {
     const preparedData = await this.prepareDataService.getData();
     const dataToFill: (string | number)[][] = [];
 
+    const sorted = [];
+
     for (const row of preparedData) {
       const dataToFillRow: (string | number)[] = [];
 
@@ -24,17 +26,18 @@ export class GoogleSheetsUseCase {
         (a, b) => a.Year - b.Year || a.Month - b.Month,
       );
 
+      sorted.push(sortedData);
+
       const years = [...new Set(sortedData.map((item) => item.Year))].sort();
 
       while (years.length < 2) {
-        const last = years[years.length - 1] || new Date().getFullYear() - 1;
-        years.push(last + 1);
+        const first = years[0] || new Date().getFullYear();
+        years.unshift(first - 1);
       }
 
-      const targetYears = years.slice(0, 2);
+      const targetYears = years.slice(-2);
 
       const fullDateRange = [];
-
       for (const year of targetYears) {
         for (let month = 1; month <= 12; month++) {
           fullDateRange.push({ year, month });
@@ -43,14 +46,15 @@ export class GoogleSheetsUseCase {
 
       const dateMap = new Map<
         string,
-        { Plan: number | null; Fact: number | null }
+        { Plan: string | number; Fact: string | number }
       >();
-      for (const entry of row.data) {
-        const monthStr = entry.Month.toString().padStart(2, '0');
 
-        dateMap.set(`${entry.Year}-${monthStr}`, {
-          Plan: entry.Plan,
-          Fact: entry.Fact,
+      for (const entry of sortedData) {
+        const monthStr = entry.Month.toString().padStart(2, '0');
+        const key = `${entry.Year}-${monthStr}`;
+        dateMap.set(key, {
+          Plan: typeof entry.Plan === 'number' ? entry.Plan : '',
+          Fact: typeof entry.Fact === 'number' ? entry.Fact : '',
         });
       }
 
@@ -60,11 +64,9 @@ export class GoogleSheetsUseCase {
         const val = dateMap.get(key);
 
         if (val) {
-          dataToFillRow.push(val.Plan ?? '');
-          dataToFillRow.push(val.Fact ?? '');
+          dataToFillRow.push(val.Plan, val.Fact);
         } else {
-          dataToFillRow.push('');
-          dataToFillRow.push('');
+          dataToFillRow.push('', '');
         }
       }
 
@@ -106,7 +108,7 @@ export class GoogleSheetsUseCase {
     }
 
     return {
-      message: 'Data filled successfully',
+      sorted,
     };
   }
 
