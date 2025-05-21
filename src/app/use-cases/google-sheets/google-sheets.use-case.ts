@@ -17,16 +17,12 @@ export class GoogleSheetsUseCase {
     const preparedData = await this.prepareDataService.getData();
     const dataToFill: (string | number)[][] = [];
 
-    const sorted = [];
-
     for (const row of preparedData) {
       const dataToFillRow: (string | number)[] = [];
 
       const sortedData = row.data.sort(
         (a, b) => a.Year - b.Year || a.Month - b.Month,
       );
-
-      sorted.push(sortedData);
 
       const years = [...new Set(sortedData.map((item) => item.Year))].sort();
 
@@ -108,7 +104,7 @@ export class GoogleSheetsUseCase {
     }
 
     return {
-      sorted,
+      message: 'Data filled successfully',
     };
   }
 
